@@ -1,0 +1,206 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum BookingStatus {
+  REQUESTED
+  CONFIRMED
+  ON_THE_WAY
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum OrderStatus {
+  PLACED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  phone        String
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+
+  bookings      Booking[]
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
+  wishlist      WishlistItem[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Service {
+  id          Int      @id
+  name        String
+  description String
+  category    String
+  fromPrice   Int
+  duration    Int
+  terms       String   @default("")
+  providers   Provider[]
+  bookings    Booking[]
+
+  @@index([category])
+}
+
+model Provider {
+  id       Int       @id
+  name     String
+  years    Int
+  verified Boolean   @default(true)
+  response String
+  services Service[]
+  bookings Booking[]
+}
+
+model Product {
+  id       Int    @id
+  name     String
+  seller   String
+  price    Int
+  oldPrice Int
+  category String
+  img      String
+  blurb    String?
+  orderItems OrderItem[]
+  wishlist   WishlistItem[]
+
+  @@index([category])
+}
+
+model Booking {
+  id         String        @id
+  userId     String
+  serviceId  Int
+  providerId Int?
+  day        String
+  slot       String
+  name       String
+  phone      String
+  address    String
+  notes      String        @default("")
+  estimate   Int
+  status     BookingStatus @default(REQUESTED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id])
+  provider Provider? @relation(fields: [providerId], references: [id])
+  review   Review?
+
+  @@index([userId, createdAt])
+  @@index([providerId, day, slot])
+}
+
+model Order {
+  id        String      @id
+  userId    String
+  name      String
+  phone     String
+  address   String
+  city      String
+  pin       String
+  coupon    String?
+  subtotal  Int
+  discount  Int         @default(0)
+  total     Int
+  status    OrderStatus @default(PLACED)
+  createdAt DateTime    @default(now())
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId Int
+  qty       Int
+  unitPrice Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  target    Int
+  bookingId String?  @unique
+  rating    Int
+  text      String   @default("")
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id])
+
+  @@index([kind, target])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model WishlistItem {
+  userId    String
+  productId Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  code    String  @id
+  percent Int
+  active  Boolean @default(true)
+}

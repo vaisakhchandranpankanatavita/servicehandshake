@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Fixzy",
+    "slug": "fixzy",
+    "scheme": "fixzy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fixzy.app"
+    },
+    "android": {
+      "package": "com.fixzy.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-font"
+    ]
+  }
+}
